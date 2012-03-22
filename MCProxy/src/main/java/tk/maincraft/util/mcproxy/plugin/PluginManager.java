@@ -20,14 +20,17 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 import tk.maincraft.util.mcpackets.Packet;
+import tk.maincraft.util.mcproxy.MinecraftProxy;
 import tk.maincraft.util.mcproxy.NetworkPartner;
 
 public final class PluginManager {
+    private final MinecraftProxy proxy;
     private final File folder;
     private final Set<Plugin> plugins;
     private final List<PacketHandlerInfo> handlers;
 
-    public PluginManager(String folderName) {
+    public PluginManager(MinecraftProxy proxy, String folderName) {
+        this.proxy = proxy;
         this.folder = new File(folderName);
         this.plugins = new HashSet<Plugin>();
         this.handlers = new ArrayList<PacketHandlerInfo>();
@@ -62,7 +65,7 @@ public final class PluginManager {
             Class<?> jarClass = Class.forName(pluginClassName, true, loader);
             Class<? extends Plugin> pluginClass = jarClass.asSubclass(Plugin.class);
 
-            plugins.add(pluginClass.newInstance());
+            this.addPlugin(pluginClass.newInstance());
         } catch (Exception ex) {
             ex.printStackTrace();
         } finally {
@@ -93,8 +96,14 @@ public final class PluginManager {
             loadPlugin(file);
         }
 
+    }
 
-        // now parse handlers
+    public void addPlugin(Plugin plugin) {
+        plugin.setProxy(proxy);
+        plugins.add(plugin);
+    }
+
+    public void bakeHandlers() {
         for (Plugin plugin : plugins) {
             for (Method method : plugin.getClass().getMethods()) {
                 if (method.isAnnotationPresent(PacketHandler.class)) {

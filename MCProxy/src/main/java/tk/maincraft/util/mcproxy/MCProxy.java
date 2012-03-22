@@ -16,12 +16,8 @@ import java.util.concurrent.TimeUnit;
 import tk.maincraft.util.mcpackets.Packet;
 import tk.maincraft.util.mcpackets.PacketReader;
 import tk.maincraft.util.mcpackets.PacketWriter;
-import tk.maincraft.util.mcpackets.Packets;
 import tk.maincraft.util.mcpackets.packet.KickPacket;
-import tk.maincraft.util.mcpackets.packet.LoginPacket;
 import tk.maincraft.util.mcpackets.packet.impl.KeepAlivePacketImpl;
-import tk.maincraft.util.mcpackets.packet.impl.KickPacketImpl;
-
 import tk.maincraft.util.mcproxy.plugin.PluginManager;
 
 public class MCProxy implements MinecraftProxy {
@@ -39,7 +35,7 @@ public class MCProxy implements MinecraftProxy {
 
     public MCProxy(int port) {
         this.port = port;
-        this.pluginManager = new PluginManager("plugins");
+        this.pluginManager = new PluginManager(this, "plugins");
     }
 
     private final class ReaderThread extends Thread {
@@ -58,29 +54,6 @@ public class MCProxy implements MinecraftProxy {
             try {
                 while (!this.isInterrupted()) {
                     Packet read = PacketReader.read(input);
-                    // TODO split these checks out into plugins
-                    if (target == NetworkPartner.SERVER) {
-                        // client checks
-                        if (read instanceof LoginPacket) {
-                            LoginPacket loginPacket = (LoginPacket) read;
-                            int protocolVersion = loginPacket.getProtocolVersionOrEntityId();
-                            if (protocolVersion != Packets.PROTOCOL_VERSION) {
-                                System.out.println("Their protocol: " + protocolVersion);
-                                System.out.println("Our protocol: " + Packets.PROTOCOL_VERSION);
-                                KickPacket kickPacket = new KickPacketImpl(
-                                        (protocolVersion > Packets.PROTOCOL_VERSION) ? "Outdated proxy!"
-                                                : "Outdated client!");
-                                System.out.println("MCProxy: " + kickPacket);
-                                clientQueue.add(kickPacket);
-                                serverQueue.add(kickPacket);
-                                System.out.println(this.getName()
-                                        + ": Normal termination due to us sending a KickPacket!");
-                                break;
-                            }
-                        }
-                    } else {
-                        // server checks
-                    }
                     sendPacket(read, target);
                     if (read instanceof KickPacket) {
                         System.out.println(this.getName() + ": Normal termination due to a KickPacket!");
@@ -139,6 +112,7 @@ public class MCProxy implements MinecraftProxy {
     public void run() throws Exception {
         // load plugins
         pluginManager.loadPlugins();
+        pluginManager.bakeHandlers();
 
         ServerSocket socket = new ServerSocket(port);
         System.out.println("MCProxy: Now listening at *:" + port);
@@ -211,5 +185,9 @@ public class MCProxy implements MinecraftProxy {
         synchronized (shutdownLock) {
             shutdownLock.notifyAll();
         }
+    }
+
+    public PluginManager getPluginManager() {
+        return pluginManager;
     }
 }
