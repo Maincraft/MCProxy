@@ -11,6 +11,6 @@
         <module>MCProxy</module>
         <module>MCProxy-Complete</module>
         <module>ProtocolVersionVerificationPlugin</module>
+        <module>FreezePlugin</module>
     </modules>
 </project>
-

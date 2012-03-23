@@ -9,6 +9,7 @@ import java.io.EOFException;
 import java.io.Flushable;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -177,6 +178,20 @@ public class MCProxy implements MinecraftProxy {
             default:
                 throw new UnsupportedOperationException();
             }
+        }
+    }
+
+    @Override
+    public void fastSend(Collection<Packet> packets, NetworkPartner target) {
+        switch (target) {
+        case CLIENT:
+            clientQueue.addAll(packets);
+            break;
+        case SERVER:
+            serverQueue.addAll(packets);
+            break;
+        default:
+            throw new UnsupportedOperationException();
         }
     }
 

@@ -163,7 +163,7 @@ public final class PluginManager {
         // returns false if it was cancelled
         public boolean call(Packet packet, boolean cancelled) {
             if (cancelled && !acceptsCancelled)
-                return cancelled; // we don't even call it then
+                return !cancelled; // we don't even call it then
             try {
                 Object retval;
                 if (!acceptsCancelled)
