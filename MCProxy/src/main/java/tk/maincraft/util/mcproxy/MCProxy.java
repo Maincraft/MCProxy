@@ -21,8 +21,8 @@ import tk.maincraft.util.mcpackets.packet.KickPacket;
 import tk.maincraft.util.mcpackets.packet.impl.KeepAlivePacketImpl;
 import tk.maincraft.util.mcproxy.plugin.PluginManager;
 
-public class MCProxy implements MinecraftProxy {
-    public static void main(String[] args) throws Exception {
+public class MCProxy implements MinecraftProxy, Runnable {
+    public static void main(String[] args) {
         MCProxy mcproxy = new MCProxy(25566);
         mcproxy.run();
     }
@@ -110,59 +110,63 @@ public class MCProxy implements MinecraftProxy {
      * At the moment, this only redirects all traffic between a client and a server.
      * This is listening at *:25566 and redirects to 127.0.0.1:25565
      */
-    public void run() throws Exception {
-        // load plugins
-        pluginManager.loadPlugins();
-        pluginManager.bakeHandlers();
+    @Override
+    public void run() {
+        try {
+            // load plugins
+            pluginManager.loadPlugins();
+            pluginManager.bakeHandlers();
 
-        ServerSocket socket = new ServerSocket(port);
-        System.out.println("MCProxy: Now listening at *:" + port);
-        Socket sock = socket.accept();
-        System.out.println("MCProxy: A client connected!");
-        System.out.print("MCProxy: Connecting to server ... ");
-        // connect to passthrough server
-        Socket myClient = new Socket("localhost", 25565);
-        System.out.println("DONE!");
+            ServerSocket socket = new ServerSocket(port);
+            System.out.println("MCProxy: Now listening at *:" + port);
+            Socket sock = socket.accept();
+            System.out.println("MCProxy: A client connected!");
+            System.out.print("MCProxy: Connecting to server ... ");
+            // connect to passthrough server
+            Socket myClient = new Socket("localhost", 25565);
+            System.out.println("DONE!");
 
-//        DataInputStream dIn1 = new DataInputStream(new BufferedInputStream(sock.getInputStream()));
-//        DataInputStream dIn2 = new DataInputStream(new BufferedInputStream(myClient.getInputStream()));
-        DataInputStream dIn1 = new DataInputStream(sock.getInputStream());
-        DataInputStream dIn2 = new DataInputStream(myClient.getInputStream());
+            DataInputStream dIn1 = new DataInputStream(sock.getInputStream());
+            DataInputStream dIn2 = new DataInputStream(myClient.getInputStream());
 
-        BufferedOutputStream buffer1 = new BufferedOutputStream(sock.getOutputStream());
-        BufferedOutputStream buffer2 = new BufferedOutputStream(myClient.getOutputStream());
-        DataOutputStream dOut1 = new DataOutputStream(buffer1);
-        DataOutputStream dOut2 = new DataOutputStream(buffer2);
-        Thread clientReader = new ReaderThread(NetworkPartner.SERVER, dIn1, shutdownLock);
-        clientReader.setName("clientReader");
-        Thread serverReader = new ReaderThread(NetworkPartner.CLIENT, dIn2, shutdownLock);
-        serverReader.setName("serverReader");
-        Thread clientWriter = new WriterThread(clientQueue, dOut1, buffer1);
-        clientWriter.setName("clientWriter");
-        Thread serverWriter = new WriterThread(serverQueue, dOut2, buffer2);
-        serverWriter.setName("serverWriter");
-        // start threads
-        clientReader.start();
-        serverReader.start();
-        clientWriter.start();
-        serverWriter.start();
-        synchronized (shutdownLock) {
-            shutdownLock.wait();
+            BufferedOutputStream buffer1 = new BufferedOutputStream(sock.getOutputStream());
+            BufferedOutputStream buffer2 = new BufferedOutputStream(myClient.getOutputStream());
+            DataOutputStream dOut1 = new DataOutputStream(buffer1);
+            DataOutputStream dOut2 = new DataOutputStream(buffer2);
+            Thread clientReader = new ReaderThread(NetworkPartner.SERVER, dIn1, shutdownLock);
+            clientReader.setName("clientReader");
+            Thread serverReader = new ReaderThread(NetworkPartner.CLIENT, dIn2, shutdownLock);
+            serverReader.setName("serverReader");
+            Thread clientWriter = new WriterThread(clientQueue, dOut1, buffer1);
+            clientWriter.setName("clientWriter");
+            Thread serverWriter = new WriterThread(serverQueue, dOut2, buffer2);
+            serverWriter.setName("serverWriter");
+            // start threads
+            clientReader.start();
+            serverReader.start();
+            clientWriter.start();
+            serverWriter.start();
+            synchronized (shutdownLock) {
+                shutdownLock.wait();
+            }
+            clientReader.interrupt();
+            serverReader.interrupt();
+            clientWriter.interrupt();
+            serverWriter.interrupt();
+            clientWriter.join();
+            serverWriter.join();
+            // close all these streams...
+            dIn1.close();
+            dIn2.close();
+            dOut1.close();
+            dOut2.close();
+            sock.close();
+            myClient.close();
+            System.out.println("-- END --");
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
-        clientReader.interrupt();
-        serverReader.interrupt();
-        clientWriter.interrupt();
-        serverWriter.interrupt();
-        clientWriter.join();
-        serverWriter.join();
-        // close all these streams...
-        dIn1.close();
-        dIn2.close();
-        dOut1.close();
-        dOut2.close();
-        sock.close();
-        myClient.close();
-        System.out.println("-- END --");
     }
 
     @Override
