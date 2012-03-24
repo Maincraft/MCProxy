@@ -10,9 +10,11 @@
     <artifactId>FreezePlugin</artifactId>
     <version>1.0</version>
     <name>FreezePlugin</name>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -20,4 +22,8 @@
             <version>${project.parent.version}</version>
         </dependency>
     </dependencies>
+
+    <build>
+        <defaultGoal>clean package</defaultGoal>
+    </build>
 </project>

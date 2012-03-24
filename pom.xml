@@ -12,5 +12,10 @@
         <module>MCProxy-Complete</module>
         <module>ProtocolVersionVerificationPlugin</module>
         <module>FreezePlugin</module>
+        <module>PluginArchetype</module>
     </modules>
+
+    <build>
+        <defaultGoal>clean package</defaultGoal>
+    </build>
 </project>
