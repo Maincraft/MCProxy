@@ -5,7 +5,7 @@
     <parent>
         <artifactId>MCProxy-All</artifactId>
         <groupId>tk.maincraft.util.mcproxy</groupId>
-        <version>1.2.4</version>
+        <version>1.2.5</version>
     </parent>
     <artifactId>FreezePlugin</artifactId>
     <version>1.0</version>
